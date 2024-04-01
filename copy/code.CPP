@@ -1,50 +1,52 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include <algorithm>
+#include <algorithm> // std::max, std::min 사용
+#include <climits>   // INT_MAX, INT_MIN 사용
 
 using namespace std;
 
-// 계산 결과를 반환하는 함수
-int calculate(const vector<int>& numbers, const vector<char>& operators, int n) {
-    if (n == 1) {
-        return numbers[0];
+int solution(vector<string> arr) {
+    int n = (arr.size() + 1) / 2; // 숫자의 개수
+    vector<vector<int>> maxDP(n, vector<int>(n, INT_MIN)); // 최댓값 저장
+    vector<vector<int>> minDP(n, vector<int>(n, INT_MAX)); // 최솟값 저장
+
+    // 숫자만 있는 경우 초기화
+    for (int i = 0; i < n; i++) {
+        int num = stoi(arr[i * 2]);
+        maxDP[i][i] = num;
+        minDP[i][i] = num;
     }
 
-    int result = INT_MIN;
-    for (int i = 1; i < n; i++) {
-        int left = calculate(numbers, operators, i);
-        int right = calculate(vector<int>(numbers.begin() + i, numbers.end()), 
-                              vector<char>(operators.begin() + i, operators.end()), 
-                              n - i);
-        int current = (operators[i - 1] == '+') ? left + right : left - right;
-        result = max(result, current);
-    }
-    return result;
-}
+    // 서브표현식을 통해 DP 테이블 채우기
+    for (int len = 2; len <= n; len++) { // 서브표현식의 길이
+        for (int i = 0; i <= n - len; i++) {
+            int j = i + len - 1;
+            for (int k = i; k < j; k++) {
+                int left = k;
+                int right = k + 1;
+                int opIndex = 2 * k + 1;
 
-// 입력 배열을 숫자와 연산자로 분리하고 최대값을 계산하는 함수
-int solution(vector<string>& arr) {
-    vector<int> numbers;
-    vector<char> operators;
-
-    for (const string& item : arr) {
-        if (isdigit(item[0])) {
-            numbers.push_back(stoi(item));
-        } else {
-            operators.push_back(item[0]);
+                if (arr[opIndex] == "+") {
+                    maxDP[i][j] = max(maxDP[i][j], maxDP[i][left] + maxDP[right][j]);
+                    minDP[i][j] = min(minDP[i][j], minDP[i][left] + minDP[right][j]);
+                } else { // "-"
+                    maxDP[i][j] = max(maxDP[i][j], maxDP[i][left] - minDP[right][j]);
+                    minDP[i][j] = min(minDP[i][j], minDP[i][left] - maxDP[right][j]);
+                }
+            }
         }
     }
 
-    return calculate(numbers, operators, numbers.size());
+    return maxDP[0][n - 1]; // 전체 표현식에 대한 최댓값 반환
 }
 
 int main() {
     vector<string> arr1 = {"1", "-", "3", "+", "5", "-", "8"};
-    vector<string> arr2 = {"5", "-", "3", "+", "1", "+", "2", "-", "4"};
+    cout << "Maximum result of [\"1\", \"-\", \"3\", \"+\", \"5\", \"-\", \"8\"]: " << solution(arr1) << endl;
 
-    cout << "Maximum result for first expression: " << solution(arr1) << endl;
-    cout << "Maximum result for second expression: " << solution(arr2) << endl;
+    vector<string> arr2 = {"5", "-", "3", "+", "1", "+", "2", "-", "4"};
+    cout << "Maximum result of [\"5\", \"-\", \"3\", \"+\", \"1\", \"+\", \"2\", \"-\", \"4\"]: " << solution(arr2) << endl;
 
     return 0;
 }
